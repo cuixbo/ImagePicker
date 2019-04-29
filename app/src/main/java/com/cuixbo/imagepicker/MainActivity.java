@@ -72,7 +72,7 @@ public class MainActivity extends AppCompatActivity {
         navView.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener);
         navView.setItemIconSize(0);
         mImagePickHelper = new ImagePickHelper(this);
-        testCheck();
+        checkPermission();
     }
 
 
@@ -82,7 +82,7 @@ public class MainActivity extends AppCompatActivity {
      * 3.处理权限申请的回调
      * 可以封装一下,处理回调
      */
-    private void testCheck() {
+    private void checkPermission() {
         //检查权限
         boolean hasPermission = true;
         for (String perm : CAMERA_AND_STORAGE) {
@@ -94,20 +94,19 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if (!hasPermission) {
-            //没有授权
             Log.e("xbc", "还没有授权");
+            //申请权限(异步)
             ActivityCompat.requestPermissions(this, CAMERA_AND_STORAGE, PERMISSION_REQ_CODE);
         } else {
             Log.e("xbc", "已经授权了");
-
         }
 
-        //申请权限(异步)
-        ActivityCompat.requestPermissions(this, CAMERA_AND_STORAGE, PERMISSION_REQ_CODE);
         //处理权限申请的回调
     }
 
-
+    /**
+     * 处理权限申请的回调
+     */
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);

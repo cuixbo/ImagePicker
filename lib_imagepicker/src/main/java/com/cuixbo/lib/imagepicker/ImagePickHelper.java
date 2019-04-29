@@ -76,7 +76,7 @@ public class ImagePickHelper {
         return this;
     }
 
-    void buildSDCardDirs() {
+    private void buildSDCardDirs() {
         File file = new File(IMAGE_DIR);
         if (!file.exists()) {
             file.mkdirs();
@@ -95,7 +95,7 @@ public class ImagePickHelper {
         buildSDCardDirs();
         clearImageCache();
         mImagePathCamera = generateImagePath("camera");//生成拍照图片存储的路径
-        mImagePathResult = generateImagePath("result");
+        mImagePathResult = generateImagePath("result");//生成图片最终存储的路径
         mCrop = crop;
         Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         intent.putExtra(MediaStore.EXTRA_OUTPUT, generateImageUri(mImagePathCamera));// 这里的uri离开app，需要处理7.0兼容
@@ -113,8 +113,7 @@ public class ImagePickHelper {
         }
         buildSDCardDirs();
         clearImageCache();
-        //虽然相册无法指定output,仍需要IMAGE_PATH,压缩图片
-        mImagePathResult = generateImagePath("result");//生成相册图片存储路径
+        mImagePathResult = generateImagePath("result");//生成图片最终存储的路径
         mCrop = crop;
         Intent intent = new Intent();
         intent.setAction(Intent.ACTION_PICK);
@@ -144,7 +143,8 @@ public class ImagePickHelper {
         intent.putExtra("return-data", false);
         mImagePathCrop = generateImagePath("crop");
         // 设置裁剪后的图片保存的uri.这里不能使用FileProvider，需要使用(file://)所以使用Uri.fromFile
-        // 原因我猜测：setDataAndType中的uri,对于Crop软件来说是由外部传入的所以要用content uri，而下面output的uri是给CROP内部使用的所以用file uri
+        // 原因我猜测：setDataAndType中的uri,对于Crop软件来说是由外部传入的所以要用content uri，
+        // 而下面output的uri（其实是Parcelable类型可能不会检测uri）是给CROP内部使用的所以用file uri
         intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(new File(mImagePathCrop)));// 裁剪后的uri，注意这里不需要处理7.0兼容
         mActivity.startActivityForResult(intent, REQ_CODE_FROM_ZOOM);
     }
@@ -172,7 +172,7 @@ public class ImagePickHelper {
             if (files != null) {
                 for (File file : files) {
                     if (file.getName().startsWith("image_picker")) {
-//                        file.delete();
+                        file.delete();
                     }
                 }
             }
@@ -191,16 +191,7 @@ public class ImagePickHelper {
     }
 
     /**
-     * 生成(头像上传的)图片保存路径
-     *
-     * @return
-     */
-    public static String generateAvatarImagePath() {
-        return IMAGE_DIR + "/user_avatar_t" + System.currentTimeMillis() + "t.png";
-    }
-
-    /**
-     * 生成图片uri，兼容7.0
+     * 生成图片uri传递给相机或裁剪，需要兼容7.0
      *
      * @return
      */
@@ -216,9 +207,9 @@ public class ImagePickHelper {
 
     /**
      * 将选择的原始图片存储到本地指定路径
-     * 这里进行了采样率,旋转和体积压缩
+     * 这里进行了采样率、体积压缩
      *
-     * @param srcPath  选择的原始图片uri
+     * @param srcPath  选择的原始图片路径
      * @param destPath 本地指定路径
      */
     private void saveImage(String srcPath, String destPath) {
@@ -227,7 +218,7 @@ public class ImagePickHelper {
     }
 
     /**
-     * 旋转Bitmap图片
+     * 采样率获取bitmap，修正图片旋转角度，压缩输出到目标路径
      *
      * @param
      * @param
@@ -247,7 +238,6 @@ public class ImagePickHelper {
 
     public void handleResult(int requestCode, int resultCode, Intent data) {
         if (resultCode != Activity.RESULT_OK) {
-
             return;
         }
         switch (requestCode) {
@@ -260,8 +250,6 @@ public class ImagePickHelper {
                 if (mCrop) {// 裁剪
                     takingByCrop(mImagePathResult);//进行裁剪
                 } else if (mImagePickCallBack != null) {
-//                    saveImage(Uri.fromFile(new File(mImagePathCamera)), mImagePathResult);// 这里进行了采样率,旋转和体积压缩
-//                    saveImage(mImagePathCamera, mImagePathResult);// 这里进行了采样率,旋转和体积压缩
                     mImagePickCallBack.onSuccess(Uri.fromFile(new File(mImagePathResult)), mImagePathResult);
                 } else {
                     Toast.makeText(mActivity, "图片获取失败", Toast.LENGTH_LONG).show();
@@ -296,7 +284,6 @@ public class ImagePickHelper {
                 if (mImagePickCallBack != null) {
                     Log.e("xbc", "result degree:" + BitmapUtils.getImageDegree(mImagePathResult));
                     Log.e("xbc", "crop degree:" + BitmapUtils.getImageDegree(mImagePathCrop));
-
                     mImagePickCallBack.onSuccess(Uri.fromFile(new File(mImagePathCrop)), mImagePathCrop);
                 }
                 break;

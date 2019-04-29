@@ -9,7 +9,6 @@ import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.net.Uri;
 import android.provider.MediaStore.Images.ImageColumns;
-import android.text.TextUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -22,68 +21,7 @@ import androidx.exifinterface.media.ExifInterface;
 public class BitmapUtils {
 
     /**
-     * 对图片进行采样率缩放操作
-     *
-     * @param context
-     * @param uri
-     * @param imagePath
-     * @return
-     */
-    public static Bitmap getBitmap(Context context, Uri uri, String imagePath) {
-        Bitmap bitmap = null;
-        InputStream in = null;
-        try {
-            BitmapFactory.Options options = new BitmapFactory.Options();
-            options.inJustDecodeBounds = true;
-            in = context.getContentResolver().openInputStream(uri);
-            BitmapFactory.decodeStream(in, null, options);
-            int w = options.outWidth;
-            int h = options.outHeight;
-            float hh = 1280;//这里设置高度为800f
-            float ww = 720f;//这里设置宽度为480f
-            int be = 1;//be=1表示不缩放
-            if (w > h) {//宽度大
-                if (w > hh) {//宽度超过了1280，需要压缩
-                    int r = (int) (w / hh);
-                    be = (int) Math.pow(2, (int) (Math.ceil(Math.log(r) / Math.log(2))));
-                }
-            } else {//高度大
-                if (h > hh) {//宽度超过了1280，需要压缩
-                    int r = (int) (h / hh);
-                    be = (int) Math.pow(2, (int) (Math.ceil(Math.log(r) / Math.log(2))));
-                }
-            }
-            options.inSampleSize = be;//设置缩放比例
-            options.inJustDecodeBounds = false;
-            in = context.getContentResolver().openInputStream(uri);
-            bitmap = BitmapFactory.decodeStream(in, null, options);
-
-            //增加某些手机厂商默认换屏拍照的问题，判断图片旋转方向，对图片进行复原处理；
-            imagePath = getRealPathFromUri(context, uri);
-            if (!TextUtils.isEmpty(imagePath)) {
-                int degree = getImageDegree(imagePath);
-                if (degree != 0) {
-                    bitmap = rotateBitmap(bitmap, degree);
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        } catch (OutOfMemoryError e) {
-            e.printStackTrace();
-        } finally {
-            if (in != null) {
-                try {
-                    in.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-        return bitmap;
-    }
-
-    /**
-     * 将图片uri转成bitmap，采样率缩放处理后，compress输出到文件
+     * 将srcPath图片转成bitmap，采样率缩放处理后，compress输出到destPath文件
      *
      * @param context
      * @param srcPath
@@ -273,7 +211,7 @@ public class BitmapUtils {
         if (bitmap == null) {
             return null;
         }
-        Matrix matrix = new Matrix();    // 旋转图片 动作
+        Matrix matrix = new Matrix();// 旋转图片 动作
         matrix.postRotate(angle);
         // 创建新的图片
         Bitmap rotatedBitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
