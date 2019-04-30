@@ -261,7 +261,7 @@ public class ImagePickHelper {
                     //path /storage/emulated/0/DCIM/Camera/IMG_20190424_192129.jpg
                     mImagePathGallery = BitmapUtils.getRealPathFromUri(mActivity, data.getData());
                     // 需要处理旋转（这里可能选的是拍照的那张被旋转的原图，所以也要处理旋转）
-                    mImagePathResult = fixImageDegree(mImagePathCamera, mImagePathGallery);
+                    mImagePathResult = fixImageDegree(mImagePathGallery, mImagePathResult);
                     if (mCrop) {
                         takingByCrop(mImagePathResult);//进行裁剪
                     } else if (mImagePickCallBack != null) {//根据返回uri取路径
