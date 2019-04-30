@@ -10,13 +10,26 @@
 
 ```
 allprojects {
-  repositories {
-    ...
+    repositories {
+        ...
     maven { url 'https://jitpack.io' }
-  }
+    }
 }
 
 dependencies {
-  implementation 'com.github.cuixbo:ImagePicker:1.0.1'
+    implementation 'com.github.cuixbo:ImagePicker:1.0.1'
 }
 ```
+使用方法：
+```
+ImagePickHelper imagePickHelper = new ImagePickHelper(activity);
+imagePickHelper.showListDialog(true)
+               .setImagePickCallBack(new ImagePickHelper.ImagePickCallBack() {
+                    @Override
+                    public void onSuccess(Uri uri, final String path) {
+                        mIvImage.setImageURI(uri);
+                    }
+                });
+```
+#### Demo app的下载链接：https://www.pgyer.com/imagepicker
+[![](https://www.pgyer.com/app/qrcode/imagepicker)](https://www.pgyer.com/imagepicker)

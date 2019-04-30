@@ -28,7 +28,7 @@ dependencies {
     androidTestImplementation 'androidx.test:runner:1.1.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.1.1'
 
-    implementation project (':lib_imagepicker')
-//    implementation 'com.github.cuixbo:ImagePicker:1.0.1'
+    implementation project(':lib_imagepicker')
+//    implementation 'com.github.cuixbo:ImagePicker:1.0.2'
 
 }
