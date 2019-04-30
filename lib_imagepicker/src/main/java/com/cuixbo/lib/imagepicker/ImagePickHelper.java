@@ -8,7 +8,6 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
 import android.provider.MediaStore;
-import android.util.Log;
 import android.widget.Toast;
 
 import java.io.File;
@@ -25,8 +24,7 @@ import androidx.core.content.FileProvider;
  */
 public class ImagePickHelper {
 
-
-    public static String IMAGE_DIR = Environment.getExternalStorageDirectory().getAbsolutePath() + "/Dajie/image_cache";
+    public static String IMAGE_DIR;
 
     public static final int REQ_CODE_FROM_GALLERY = 313;// 相册
     public static final int REQ_CODE_FROM_CAMERA = 314;// 相机
@@ -44,6 +42,22 @@ public class ImagePickHelper {
 
     public ImagePickHelper(@NonNull Activity activity) {
         mActivity = activity;
+        if (IMAGE_DIR == null) {
+            File cacheDir = activity.getExternalCacheDir();
+            if (cacheDir != null) {
+                setCacheDir(cacheDir.getAbsolutePath() + "/image_cache");
+            } else {
+                setCacheDir(Environment.getExternalStorageDirectory().getAbsolutePath() + "/ImagePicker/image_cache");
+            }
+        }
+        clearImageCache();
+    }
+
+    /**
+     * 设置缓存目录
+     */
+    public void setCacheDir(String dir) {
+        IMAGE_DIR = dir;
     }
 
     public void setImagePickCallBack(ImagePickCallBack callBack) {
@@ -76,27 +90,18 @@ public class ImagePickHelper {
         return this;
     }
 
-    private void buildSDCardDirs() {
-        File file = new File(IMAGE_DIR);
-        if (!file.exists()) {
-            file.mkdirs();
-        }
-    }
-
     //相机,不裁剪
     public void takingByCamera() {
         takingByCamera(false);
     }
 
     public void takingByCamera(boolean crop) {
-        if (!checkSDCard()) {
+        if (!checkExternalStorage()) {
             return;
         }
-        buildSDCardDirs();
-        clearImageCache();
+        mCrop = crop;
         mImagePathCamera = generateImagePath("camera");//生成拍照图片存储的路径
         mImagePathResult = generateImagePath("result");//生成图片最终存储的路径
-        mCrop = crop;
         Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         intent.putExtra(MediaStore.EXTRA_OUTPUT, generateImageUri(mImagePathCamera));// 这里的uri离开app，需要处理7.0兼容
         mActivity.startActivityForResult(intent, REQ_CODE_FROM_CAMERA);
@@ -108,13 +113,11 @@ public class ImagePickHelper {
     }
 
     public void takingByGallery(boolean crop) {
-        if (!checkSDCard()) {
+        if (!checkExternalStorage()) {
             return;
         }
-        buildSDCardDirs();
-        clearImageCache();
-        mImagePathResult = generateImagePath("result");//生成图片最终存储的路径
         mCrop = crop;
+        mImagePathResult = generateImagePath("result");//生成图片最终存储的路径
         Intent intent = new Intent();
         intent.setAction(Intent.ACTION_PICK);
         intent.setType("image/*");
@@ -150,16 +153,24 @@ public class ImagePickHelper {
     }
 
     /**
-     * 检查SD卡
+     * 检查外部存储是否已挂载
      *
      * @return
      */
-    private boolean checkSDCard() {
+    private boolean checkExternalStorage() {
         if (!Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
-            Toast.makeText(mActivity, "没有外置sdcard", Toast.LENGTH_LONG).show();
+            Toast.makeText(mActivity, "抱歉，外部存储尚未挂载", Toast.LENGTH_LONG).show();
             return false;
         }
+        buildImageCacheDir();
         return true;
+    }
+
+    private void buildImageCacheDir() {
+        File file = new File(IMAGE_DIR);
+        if (!file.exists()) {
+            file.mkdirs();
+        }
     }
 
     /**
@@ -172,7 +183,7 @@ public class ImagePickHelper {
             if (files != null) {
                 for (File file : files) {
                     if (file.getName().startsWith("image_picker")) {
-                        file.delete();
+//                        file.delete();
                     }
                 }
             }
@@ -201,20 +212,8 @@ public class ImagePickHelper {
         } else {
             // 7.0之后开始StrictMode 包含(file://)的uri离开应用会出现异常。所以需要用(content://)uri,FileProvider可以实现
             // content://com.dajie.official.chat.provider/external_files/DCIM/Camera/IMG_20190424_192129.jpg
-            return FileProvider.getUriForFile(mActivity, mActivity.getPackageName() + ".provider", new File(imagePath));
+            return FileProvider.getUriForFile(mActivity, mActivity.getPackageName() + ".imagepicker.provider", new File(imagePath));
         }
-    }
-
-    /**
-     * 将选择的原始图片存储到本地指定路径
-     * 这里进行了采样率、体积压缩
-     *
-     * @param srcPath  选择的原始图片路径
-     * @param destPath 本地指定路径
-     */
-    private void saveImage(String srcPath, String destPath) {
-        Log.e("xbc", "saveImage:src:" + srcPath + ",dest:" + destPath);
-        BitmapUtils.saveInSampleToFile(mActivity, srcPath, destPath);
     }
 
     /**
@@ -242,11 +241,8 @@ public class ImagePickHelper {
         }
         switch (requestCode) {
             case REQ_CODE_FROM_CAMERA://已经设置了output,图片会存到对应的uri(IMAGE_URI)
-                Log.e("xbc", "degree:" + BitmapUtils.getImageDegree(mImagePathCamera));
-                //需要处理旋转
+                // 需要处理旋转
                 mImagePathResult = fixImageDegree(mImagePathCamera, mImagePathResult);
-
-                Log.e("xbc", "degree:" + BitmapUtils.getImageDegree(mImagePathResult));
                 if (mCrop) {// 裁剪
                     takingByCrop(mImagePathResult);//进行裁剪
                 } else if (mImagePickCallBack != null) {
@@ -261,16 +257,14 @@ public class ImagePickHelper {
             case REQ_CODE_FROM_GALLERY://data.getData()返回的是选中的图片原始uri,我们需要存到自己的uri中
                 if (data != null && data.getData() != null) {//成功
                     //data content://com.miui.gallery.open/raw//storage/emulated/0/DCIM/Camera/IMG_20190424_192129.jpg
-
-                    // 7.0及以上需要将data转为path再转为galleryUri
+                    // 需要将data转为path
                     //path /storage/emulated/0/DCIM/Camera/IMG_20190424_192129.jpg
                     mImagePathGallery = BitmapUtils.getRealPathFromUri(mActivity, data.getData());
-                    Log.e("xbc", "uri:" + data.getData() + ",realPath:" + mImagePathGallery);
-
+                    // 需要处理旋转（这里可能选的是拍照的那张被旋转的原图，所以也要处理旋转）
+                    mImagePathResult = fixImageDegree(mImagePathCamera, mImagePathGallery);
                     if (mCrop) {
-                        takingByCrop(mImagePathGallery);//进行裁剪
+                        takingByCrop(mImagePathResult);//进行裁剪
                     } else if (mImagePickCallBack != null) {//根据返回uri取路径
-                        saveImage(mImagePathGallery, mImagePathResult);//这里进行了采样率,旋转和体积压缩
                         mImagePickCallBack.onSuccess(Uri.fromFile(new File(mImagePathResult)), mImagePathResult);
                     }
                 } else {
@@ -282,8 +276,6 @@ public class ImagePickHelper {
                 break;
             case REQ_CODE_FROM_ZOOM: //RESULT_OK即表示成功,因为我们指定了output
                 if (mImagePickCallBack != null) {
-                    Log.e("xbc", "result degree:" + BitmapUtils.getImageDegree(mImagePathResult));
-                    Log.e("xbc", "crop degree:" + BitmapUtils.getImageDegree(mImagePathCrop));
                     mImagePickCallBack.onSuccess(Uri.fromFile(new File(mImagePathCrop)), mImagePathCrop);
                 }
                 break;

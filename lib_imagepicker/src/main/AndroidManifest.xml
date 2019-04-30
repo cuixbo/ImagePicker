@@ -12,7 +12,7 @@
 拍照等功能需要用到-->
         <provider
             android:name="androidx.core.content.FileProvider"
-            android:authorities="${applicationId}.provider"
+            android:authorities="${applicationId}.imagepicker.provider"
             android:exported="false"
             android:grantUriPermissions="true">
             <meta-data

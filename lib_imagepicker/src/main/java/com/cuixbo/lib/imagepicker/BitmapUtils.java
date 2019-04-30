@@ -171,7 +171,6 @@ public class BitmapUtils {
         return path;
     }
 
-
     /**
      * 从图片路径中获取图片旋转的角度
      *
