@@ -10,13 +10,24 @@
 
 ```
 allprojects {
-  repositories {
-    ...
+    repositories {
+        ...
     maven { url 'https://jitpack.io' }
-  }
+    }
 }
 
 dependencies {
-  implementation 'com.github.cuixbo:ImagePicker:1.0.1'
+    implementation 'com.github.cuixbo:ImagePicker:1.0.1'
 }
+```
+使用方法：
+```
+ImagePickHelper imagePickHelper = new ImagePickHelper(activity);
+imagePickHelper.showListDialog(true)
+               .setImagePickCallBack(new ImagePickHelper.ImagePickCallBack() {
+                    @Override
+                    public void onSuccess(Uri uri, final String path) {
+                        mIvImage.setImageURI(uri);
+                    }
+                });
 ```
