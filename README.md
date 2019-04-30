@@ -31,3 +31,5 @@ imagePickHelper.showListDialog(true)
                     }
                 });
 ```
+#### Demo app的下载链接：https://www.pgyer.com/imagepicker
+[![](https://www.pgyer.com/app/qrcode/imagepicker)](https://www.pgyer.com/imagepicker)
