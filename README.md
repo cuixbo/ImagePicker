@@ -17,7 +17,7 @@ allprojects {
 }
 
 dependencies {
-    implementation 'com.github.cuixbo:ImagePicker:1.0.1'
+    implementation 'com.github.cuixbo:ImagePicker:1.0.3'
 }
 ```
 使用方法：
