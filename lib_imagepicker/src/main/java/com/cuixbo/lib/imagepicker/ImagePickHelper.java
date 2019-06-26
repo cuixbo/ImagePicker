@@ -183,7 +183,7 @@ public class ImagePickHelper {
             if (files != null) {
                 for (File file : files) {
                     if (file.getName().startsWith("image_picker")) {
-//                        file.delete();
+                        file.delete();
                     }
                 }
             }
