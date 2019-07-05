@@ -8,10 +8,10 @@
 
     <application>
         <!--Android7.0之后，StrictMode API 政策禁止在您的应用外部公开(file://)
-需要使用FileProvider转换成(content://)及uri grant权限.
-拍照等功能需要用到-->
+            需要使用FileProvider转换成(content://)及uri grant权限.
+            拍照等功能需要用到-->
         <provider
-            android:name="androidx.core.content.FileProvider"
+            android:name="android.support.v4.content.FileProvider"
             android:authorities="${applicationId}.imagepicker.provider"
             android:exported="false"
             android:grantUriPermissions="true">
