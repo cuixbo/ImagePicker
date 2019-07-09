@@ -2,6 +2,7 @@ package com.cuixbo.lib.imagepicker;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -14,8 +15,7 @@ import android.support.v4.content.FileProvider;
 import android.widget.Toast;
 
 import java.io.File;
-
-
+import java.lang.ref.WeakReference;
 
 /**
  * Camera:  自己指定path,uri进行存储图片
@@ -25,13 +25,16 @@ import java.io.File;
  */
 public class ImagePickHelper {
 
+    public static ImagePickHelper imagePickHelper;
+
+    public WeakReference<Activity> mWeakReference;
+
     public static String IMAGE_DIR;
 
     public static final int REQ_CODE_FROM_GALLERY = 313;// 相册
     public static final int REQ_CODE_FROM_CAMERA = 314;// 相机
     public static final int REQ_CODE_FROM_ZOOM = 315;// 裁剪
 
-    private Activity mActivity;
     private ImagePickCallBack mImagePickCallBack;
 
     public String mImagePathCamera;// 拍照的图片保存路径
@@ -42,7 +45,6 @@ public class ImagePickHelper {
     private boolean mCrop;
 
     public ImagePickHelper(@NonNull Activity activity) {
-        mActivity = activity;
         if (IMAGE_DIR == null) {
             File cacheDir = activity.getExternalCacheDir();
             if (cacheDir != null) {
@@ -52,6 +54,15 @@ public class ImagePickHelper {
             }
         }
         clearImageCache();
+        mWeakReference = new WeakReference<>(activity);
+    }
+
+    public static ImagePickHelper get(@NonNull Activity activity) {
+        if (imagePickHelper != null && imagePickHelper.mWeakReference.get() == activity) {
+            return imagePickHelper;
+        }
+        imagePickHelper = new ImagePickHelper(activity);
+        return imagePickHelper;
     }
 
     /**
@@ -65,8 +76,20 @@ public class ImagePickHelper {
         mImagePickCallBack = callBack;
     }
 
-    public ImagePickHelper showListDialog(final boolean crop) {
-        final AlertDialog.Builder builder = new AlertDialog.Builder(mActivity);
+    /**
+     * 是否裁剪
+     */
+    public ImagePickHelper crop(boolean crop) {
+        this.mCrop = crop;
+        return this;
+    }
+
+    public ImagePickHelper showListDialog() {
+        Activity activity = mWeakReference.get();
+        if (activity == null) {
+            return this;
+        }
+        final AlertDialog.Builder builder = new AlertDialog.Builder(activity);
         builder.setTitle("请选择");
         String[] itemStrings = new String[]{"拍照", "从手机相册选择", "取消"};
         builder.setItems(itemStrings, new DialogInterface.OnClickListener() {
@@ -75,10 +98,10 @@ public class ImagePickHelper {
             public void onClick(DialogInterface dialog, int which) {
                 switch (which) {
                     case 0:
-                        takingByCamera(crop);
+                        takingByCamera();
                         break;
                     case 1:
-                        takingByGallery(crop);
+                        takingByGallery();
                         break;
                     case 2:
                         dialog.dismiss();
@@ -91,40 +114,36 @@ public class ImagePickHelper {
         return this;
     }
 
-    //相机,不裁剪
     public void takingByCamera() {
-        takingByCamera(false);
-    }
-
-    public void takingByCamera(boolean crop) {
-        if (!checkExternalStorage()) {
+        Activity activity = mWeakReference.get();
+        if (activity == null) {
             return;
         }
-        mCrop = crop;
+        if (!checkExternalStorage(activity)) {
+            return;
+        }
         mImagePathCamera = generateImagePath("camera");//生成拍照图片存储的路径
         mImagePathResult = generateImagePath("result");//生成图片最终存储的路径
         Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        intent.putExtra(MediaStore.EXTRA_OUTPUT, generateImageUri(mImagePathCamera));// 这里的uri离开app，需要处理7.0兼容
-        mActivity.startActivityForResult(intent, REQ_CODE_FROM_CAMERA);
+        intent.putExtra(MediaStore.EXTRA_OUTPUT, generateImageUri(activity, mImagePathCamera));// 这里的uri离开app，需要处理7.0兼容
+        activity.startActivityForResult(intent, REQ_CODE_FROM_CAMERA);
     }
 
-    //相册,不裁剪
     public void takingByGallery() {
-        takingByGallery(false);
-    }
-
-    public void takingByGallery(boolean crop) {
-        if (!checkExternalStorage()) {
+        Activity activity = mWeakReference.get();
+        if (activity == null) {
             return;
         }
-        mCrop = crop;
+        if (!checkExternalStorage(activity)) {
+            return;
+        }
         mImagePathResult = generateImagePath("result");//生成图片最终存储的路径
         Intent intent = new Intent();
         intent.setAction(Intent.ACTION_PICK);
         intent.setType("image/*");
         intent.putExtra("noFaceDetection", true);
         intent.putExtra("return-data", false);
-        mActivity.startActivityForResult(intent, REQ_CODE_FROM_GALLERY);
+        activity.startActivityForResult(intent, REQ_CODE_FROM_GALLERY);
     }
 
     /**
@@ -133,8 +152,12 @@ public class ImagePickHelper {
      * @param path 原图的path
      */
     public void takingByCrop(String path) {
+        Activity activity = mWeakReference.get();
+        if (activity == null) {
+            return;
+        }
         Intent intent = new Intent("com.android.camera.action.CROP");
-        intent.setDataAndType(generateImageUri(path), "image/*");//原图的uri离开app,需要兼容7.0
+        intent.setDataAndType(generateImageUri(activity, path), "image/*");//原图的uri离开app,需要兼容7.0
         // 7.0起，在调起相机拍照之后，调起裁切之前，需要加上下面两行：uri 权限，否则提示"图片加载失败"
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
@@ -150,17 +173,15 @@ public class ImagePickHelper {
         // 原因我猜测：setDataAndType中的uri,对于Crop软件来说是由外部传入的所以要用content uri，
         // 而下面output的uri（其实是Parcelable类型可能不会检测uri）是给CROP内部使用的所以用file uri
         intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(new File(mImagePathCrop)));// 裁剪后的uri，注意这里不需要处理7.0兼容
-        mActivity.startActivityForResult(intent, REQ_CODE_FROM_ZOOM);
+        activity.startActivityForResult(intent, REQ_CODE_FROM_ZOOM);
     }
 
     /**
      * 检查外部存储是否已挂载
-     *
-     * @return
      */
-    private boolean checkExternalStorage() {
+    private boolean checkExternalStorage(Context context) {
         if (!Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
-            Toast.makeText(mActivity, "抱歉，外部存储尚未挂载", Toast.LENGTH_LONG).show();
+            Toast.makeText(context, "抱歉，外部存储尚未挂载", Toast.LENGTH_LONG).show();
             return false;
         }
         buildImageCacheDir();
@@ -204,30 +225,24 @@ public class ImagePickHelper {
 
     /**
      * 生成图片uri传递给相机或裁剪，需要兼容7.0
-     *
-     * @return
      */
-    private Uri generateImageUri(String imagePath) {
+    private Uri generateImageUri(Context context, String imagePath) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
             return Uri.fromFile(new File(imagePath));//指定相册图片存储uri
         } else {
             // 7.0之后开始StrictMode 包含(file://)的uri离开应用会出现异常。所以需要用(content://)uri,FileProvider可以实现
             // content://com.dajie.official.chat.provider/external_files/DCIM/Camera/IMG_20190424_192129.jpg
-            return FileProvider.getUriForFile(mActivity, mActivity.getPackageName() + ".imagepicker.provider", new File(imagePath));
+            return FileProvider.getUriForFile(context, context.getPackageName() + ".imagepicker.provider", new File(imagePath));
         }
     }
 
     /**
      * 采样率获取bitmap，修正图片旋转角度，压缩输出到目标路径
-     *
-     * @param
-     * @param
-     * @return
      */
-    public String fixImageDegree(String srcPath, String destPath) {
+    public String fixImageDegree(Context context, String srcPath, String destPath) {
         int degree = BitmapUtils.getImageDegree(srcPath);
         // 从uri获取bitmap(采样率缩放)
-        Bitmap bitmap = BitmapUtils.getInSampleBitmapFromUri(mActivity, Uri.fromFile(new File(srcPath)));
+        Bitmap bitmap = BitmapUtils.getInSampleBitmapFromUri(context, Uri.fromFile(new File(srcPath)));
         if (degree != 0) {// 需要修复图片旋转
             bitmap = BitmapUtils.rotateBitmap(bitmap, degree);//旋转图片
         }
@@ -237,19 +252,23 @@ public class ImagePickHelper {
     }
 
     public void handleResult(int requestCode, int resultCode, Intent data) {
+        Activity activity = mWeakReference.get();
+        if (activity == null) {
+            return;
+        }
         if (resultCode != Activity.RESULT_OK) {
             return;
         }
         switch (requestCode) {
             case REQ_CODE_FROM_CAMERA://已经设置了output,图片会存到对应的uri(IMAGE_URI)
                 // 需要处理旋转
-                mImagePathResult = fixImageDegree(mImagePathCamera, mImagePathResult);
+                mImagePathResult = fixImageDegree(activity, mImagePathCamera, mImagePathResult);
                 if (mCrop) {// 裁剪
                     takingByCrop(mImagePathResult);//进行裁剪
                 } else if (mImagePickCallBack != null) {
                     mImagePickCallBack.onSuccess(Uri.fromFile(new File(mImagePathResult)), mImagePathResult);
                 } else {
-                    Toast.makeText(mActivity, "图片获取失败", Toast.LENGTH_LONG).show();
+                    Toast.makeText(activity, "图片获取失败", Toast.LENGTH_LONG).show();
                     if (mImagePickCallBack != null) {
                         mImagePickCallBack.onFailed();
                     }
@@ -260,16 +279,16 @@ public class ImagePickHelper {
                     //data content://com.miui.gallery.open/raw//storage/emulated/0/DCIM/Camera/IMG_20190424_192129.jpg
                     // 需要将data转为path
                     //path /storage/emulated/0/DCIM/Camera/IMG_20190424_192129.jpg
-                    mImagePathGallery = BitmapUtils.getRealPathFromUri(mActivity, data.getData());
+                    mImagePathGallery = BitmapUtils.getRealPathFromUri(activity, data.getData());
                     // 需要处理旋转（这里可能选的是拍照的那张被旋转的原图，所以也要处理旋转）
-                    mImagePathResult = fixImageDegree(mImagePathGallery, mImagePathResult);
+                    mImagePathResult = fixImageDegree(activity, mImagePathGallery, mImagePathResult);
                     if (mCrop) {
                         takingByCrop(mImagePathResult);//进行裁剪
                     } else if (mImagePickCallBack != null) {//根据返回uri取路径
                         mImagePickCallBack.onSuccess(Uri.fromFile(new File(mImagePathResult)), mImagePathResult);
                     }
                 } else {
-                    Toast.makeText(mActivity, "图片获取失败", Toast.LENGTH_LONG).show();
+                    Toast.makeText(activity, "图片获取失败", Toast.LENGTH_LONG).show();
                     if (mImagePickCallBack != null) {
                         mImagePickCallBack.onFailed();
                     }
@@ -291,5 +310,3 @@ public class ImagePickHelper {
     }
 
 }
-
-

@@ -27,5 +27,7 @@ dependencies {
 
     implementation project(':lib_imagepicker')
 //    implementation 'com.github.cuixbo:ImagePicker:1.0.2'
+//    implementation 'com.github.bumptech.glide:glide:4.8.0'
+//    annotationProcessor 'com.github.bumptech.glide:compiler:4.8.0'
 
 }

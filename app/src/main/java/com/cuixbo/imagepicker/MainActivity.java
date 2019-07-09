@@ -40,8 +40,9 @@ public class MainActivity extends AppCompatActivity {
             switch (item.getItemId()) {
                 case R.id.navigation_home:
                     mTextMessage.setText("不裁剪");
-                    mImagePickHelper
-                            .showListDialog(false)
+                    ImagePickHelper.get(MainActivity.this)
+                            .crop(false)
+                            .showListDialog()
                             .setImagePickCallBack(new ImagePickHelper.ImagePickCallBack() {
                                 @Override
                                 public void onSuccess(Uri uri, final String path) {
@@ -51,8 +52,9 @@ public class MainActivity extends AppCompatActivity {
                     return true;
                 case R.id.navigation_dashboard:
                     mTextMessage.setText("裁剪");
-                    mImagePickHelper
-                            .showListDialog(true)
+                    ImagePickHelper.get(MainActivity.this)
+                            .crop(true)
+                            .showListDialog()
                             .setImagePickCallBack(new ImagePickHelper.ImagePickCallBack() {
                                 @Override
                                 public void onSuccess(Uri uri, final String path) {
@@ -131,6 +133,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        mImagePickHelper.handleResult(requestCode, resultCode, data);
+        ImagePickHelper.get(this).handleResult(requestCode, resultCode, data);
     }
 }
