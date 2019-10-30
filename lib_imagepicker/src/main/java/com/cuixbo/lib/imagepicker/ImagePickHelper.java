@@ -12,6 +12,7 @@ import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.v4.content.FileProvider;
+import android.text.format.DateUtils;
 import android.widget.Toast;
 
 import java.io.File;
@@ -205,7 +206,10 @@ public class ImagePickHelper {
             if (files != null) {
                 for (File file : files) {
                     if (file.getName().startsWith("image_picker")) {
-                        file.delete();
+                        // 当日修改过的图片暂不删除
+                        if (!DateUtils.isToday(file.lastModified())) {
+                            file.delete();
+                        }
                     }
                 }
             }
