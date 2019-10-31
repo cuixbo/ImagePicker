@@ -12,11 +12,11 @@ import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.v4.content.FileProvider;
-import android.text.format.DateUtils;
 import android.widget.Toast;
 
 import java.io.File;
 import java.lang.ref.WeakReference;
+import java.util.Calendar;
 
 /**
  * Camera:  自己指定path,uri进行存储图片
@@ -204,10 +204,12 @@ public class ImagePickHelper {
             File dir = new File(IMAGE_DIR);
             File[] files = dir.listFiles();
             if (files != null) {
+                Calendar calendar = Calendar.getInstance();
+                calendar.add(Calendar.DATE, -3);// 3日内修改过的图片暂不删除
                 for (File file : files) {
                     if (file.getName().startsWith("image_picker")) {
-                        // 当日修改过的图片暂不删除
-                        if (!DateUtils.isToday(file.lastModified())) {
+                        // 3日内修改过的图片暂不删除
+                        if (calendar.after(file.lastModified())) {
                             file.delete();
                         }
                     }
