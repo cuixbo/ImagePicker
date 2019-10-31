@@ -17,7 +17,7 @@ allprojects {
 }
 
 dependencies {
-    implementation 'com.github.cuixbo:ImagePicker:1.0.7'
+    implementation 'com.github.cuixbo:ImagePicker:1.0.8'
 }
 ```
 使用方法：
@@ -28,7 +28,7 @@ dependencies {
                 .setImagePickCallBack(new ImagePickHelper.ImagePickCallBack() {
                     @Override
                     public void onSuccess(Uri uri, final String path) {
-                        updatePersonalAvatar(path);
+
                     }
                 });
 ```

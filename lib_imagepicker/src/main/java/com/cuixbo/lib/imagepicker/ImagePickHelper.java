@@ -107,7 +107,9 @@ public class ImagePickHelper {
                         break;
                     case 2:
                         dialog.dismiss();
-
+                        if (mImagePickCallBack != null) {
+                            mImagePickCallBack.onCancel();
+                        }
                         break;
                 }
             }
@@ -315,8 +317,9 @@ public class ImagePickHelper {
     public static abstract class ImagePickCallBack {
         public abstract void onSuccess(Uri uri, String path);
 
-        public void onFailed() {
-        }
+        public void onFailed() {}
+
+        public void onCancel() {}
     }
 
 }
