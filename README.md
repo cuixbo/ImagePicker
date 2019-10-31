@@ -17,17 +17,18 @@ allprojects {
 }
 
 dependencies {
-    implementation 'com.github.cuixbo:ImagePicker:1.0.6'
+    implementation 'com.github.cuixbo:ImagePicker:1.0.7'
 }
 ```
 使用方法：
 ```
-ImagePickHelper imagePickHelper = new ImagePickHelper(activity);
-imagePickHelper.showListDialog(true)
-               .setImagePickCallBack(new ImagePickHelper.ImagePickCallBack() {
+   ImagePickHelper.get(this)
+                .crop(true)
+                .showListDialog()
+                .setImagePickCallBack(new ImagePickHelper.ImagePickCallBack() {
                     @Override
                     public void onSuccess(Uri uri, final String path) {
-                        mIvImage.setImageURI(uri);
+                        updatePersonalAvatar(path);
                     }
                 });
 ```

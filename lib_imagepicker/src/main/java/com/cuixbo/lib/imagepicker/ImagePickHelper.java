@@ -69,8 +69,9 @@ public class ImagePickHelper {
     /**
      * 设置缓存目录
      */
-    public void setCacheDir(String dir) {
+    public ImagePickHelper setCacheDir(String dir) {
         IMAGE_DIR = dir;
+        return this;
     }
 
     public void setImagePickCallBack(ImagePickCallBack callBack) {
@@ -115,28 +116,29 @@ public class ImagePickHelper {
         return this;
     }
 
-    public void takingByCamera() {
+    public ImagePickHelper takingByCamera() {
         Activity activity = mWeakReference.get();
         if (activity == null) {
-            return;
+            return this;
         }
         if (!checkExternalStorage(activity)) {
-            return;
+            return this;
         }
         mImagePathCamera = generateImagePath("camera");//生成拍照图片存储的路径
         mImagePathResult = generateImagePath("result");//生成图片最终存储的路径
         Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         intent.putExtra(MediaStore.EXTRA_OUTPUT, generateImageUri(activity, mImagePathCamera));// 这里的uri离开app，需要处理7.0兼容
         activity.startActivityForResult(intent, REQ_CODE_FROM_CAMERA);
+        return this;
     }
 
-    public void takingByGallery() {
+    public ImagePickHelper takingByGallery() {
         Activity activity = mWeakReference.get();
         if (activity == null) {
-            return;
+            return this;
         }
         if (!checkExternalStorage(activity)) {
-            return;
+            return this;
         }
         mImagePathResult = generateImagePath("result");//生成图片最终存储的路径
         Intent intent = new Intent();
@@ -145,6 +147,7 @@ public class ImagePickHelper {
         intent.putExtra("noFaceDetection", true);
         intent.putExtra("return-data", false);
         activity.startActivityForResult(intent, REQ_CODE_FROM_GALLERY);
+        return this;
     }
 
     /**
@@ -152,10 +155,10 @@ public class ImagePickHelper {
      *
      * @param path 原图的path
      */
-    public void takingByCrop(String path) {
+    public ImagePickHelper takingByCrop(String path) {
         Activity activity = mWeakReference.get();
         if (activity == null) {
-            return;
+            return this;
         }
         Intent intent = new Intent("com.android.camera.action.CROP");
         intent.setDataAndType(generateImageUri(activity, path), "image/*");//原图的uri离开app,需要兼容7.0
@@ -175,6 +178,7 @@ public class ImagePickHelper {
         // 而下面output的uri（其实是Parcelable类型可能不会检测uri）是给CROP内部使用的所以用file uri
         intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(new File(mImagePathCrop)));// 裁剪后的uri，注意这里不需要处理7.0兼容
         activity.startActivityForResult(intent, REQ_CODE_FROM_ZOOM);
+        return this;
     }
 
     /**
